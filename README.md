@@ -1,5 +1,7 @@
 # LLM Dictionary
 
+[Open the live app](https://llm-dictionary.tim-5f9.workers.dev)
+
 A Next.js app for looking up words and exploring the associations between any two words. Runs on Cloudflare Workers with OpenNext and stores completed results in Cloudflare D1.
 
 ## Features
