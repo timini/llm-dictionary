@@ -181,6 +181,7 @@ export default function WordGraphView({
                 }
               }}
               onPointerDown={(e) => {
+                setSelected(n.id);
                 dragRef.current = n;
                 svgRef.current?.setPointerCapture(e.pointerId);
               }}
