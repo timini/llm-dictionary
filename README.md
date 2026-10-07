@@ -19,7 +19,7 @@ Defaults are `gemini-2.5-flash-lite` for generation and `gemini-embedding-2` wit
 
 [Gemini pricing](https://ai.google.dev/gemini-api/docs/pricing) lists Flash-Lite at $0.10 per million input tokens and $0.40 per million output tokens, and Embedding 2 text at $0.20 per million input tokens (checked October 7, 2026). Free tiers have quotas. D1 usage is billed separately by Cloudflare; no automatic cache expiry is configured.
 
-AI definitions and associations are interpretations, not authoritative dictionary entries. Graph placement is a force layout, not a direct projection of embedding coordinates. Cosine similarities are shown in edge tooltips.
+AI definitions and associations are interpretations, not authoritative dictionary entries. Graph placement is a force layout, not a direct projection of embedding coordinates. Every edge uses a target length of `40 + 240 × (1 − cosine similarity)` SVG units, regardless of whether it is an association or embedding-neighbour edge. Nodes, including endpoints, move to approximate these distances. Exact pairwise distances cannot generally be represented in two dimensions. Tooltips show distance and similarity; selecting a word exposes its neighbours sorted by distance.
 
 ## Local development
 
@@ -54,7 +54,7 @@ npm run build:worker
 npm run deploy
 ```
 
-The supplied key must be configured with Wrangler as a Worker secret, never committed. `workers.dev` is enabled. Subsequent updates require `npm run build:worker` and `npm run deploy`; apply new migrations first when present. GitHub Actions checks tests and the Worker build on pushes.
+The supplied key must be configured with Wrangler as a Worker secret, never committed. `workers.dev` is enabled. Subsequent updates use `npm run deploy`, which enforces local quality checks, builds, deploys, and runs the production smoke test. Apply new migrations first when present. GitHub Actions runs the same quality checks, then builds the Worker and checks the currently deployed site on pushes and pull requests.
 
 ## Request flow and cache
 
@@ -65,3 +65,28 @@ The supplied key must be configured with Wrangler as a Worker secret, never comm
 The cache stores generation model versions and algorithm version (`v1`) in keys. Changing prompts or algorithms should bump the version. Failed or invalid model responses are not saved. A completed step is preserved even if a later step fails. There is a small unavoidable duplicate-call window if the Worker stops after the provider responds but before the result is persisted.
 
 The Worker rate limiter allows 10 uncached requests per minute per IP, including graph steps; cache hits bypass it. This is a per-location Cloudflare limit, not a global spending cap. Monitor Gemini quotas and costs if opening the app to heavy public use.
+
+## Structure and quality gates
+
+- `app/`: thin page composition, document metadata, and API entrypoints.
+- `components/explorer/`: mode tabs, search form, loading/empty states, and result composition.
+- `components/dictionary/`: dictionary entry presentation.
+- `components/connections/`: graph, connection result, and neighbour distances.
+- `components/layout/`: shared page frame.
+- `hooks/use-explorer.ts`: search state, cancellation, and stale-response protection.
+- `lib/`: typed client requests, model/cache helpers, graph construction, distances, and smoke assertions.
+- `tests/unit/`: deterministic component, hook, client, API, cache, and graph tests. API tests run the actual migration against in-memory SQLite; Gemini transport is mocked.
+
+`npm run check` requires ESLint with zero warnings, Prettier formatting, strict TypeScript, and Vitest. Coverage thresholds are **100% per executable app file** for lines, statements, branches, and functions, including pages, API routes, components, hooks, and libraries. Only the type-declaration-only `lib/types.ts` is excluded; third-party packages, generated code, CSS, test code, and configuration are outside application coverage. There are no coverage-ignore comments. HTML, JSON, and LCOV reports are written to `coverage/` and uploaded as CI artifacts.
+
+The named **Quality gate** CI check fails unless lint/types/coverage, the Cloudflare production build, and the deployed-site smoke test all pass. `Production smoke` can also be run manually in GitHub Actions. The smoke test checks the published homepage, a JavaScript bundle, favicon, cached dictionary data, the completed 100-path graph with valid edges, and input validation. It sends `cachedOnly: true`, so cache misses return 404 and cannot incur Gemini calls. The existing `serendipity` definition and `ocean` → `music` graph are its durable fixtures; do not delete them without reseeding. It checks the currently published deployment, not an unpublished pull request preview.
+
+```sh
+npm run check
+npm run test:smoke
+SMOKE_BASE_URL=https://your-domain.example npm run test:smoke
+```
+
+## Planned domain
+
+`llmdict.io` is a proposed domain, not yet registered or configured. Once owned, add it as a Cloudflare Worker custom domain and set the repository variable `SMOKE_BASE_URL` to `https://llmdict.io`. The app has no hard-coded browser origin, so it can use the custom domain without changing application logic.

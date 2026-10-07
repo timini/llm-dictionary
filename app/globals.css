@@ -712,3 +712,25 @@ footer i {
     animation: none;
   }
 }
+
+.neighbour-distances {
+  padding: 12px 18px;
+  border-top: 1px solid #e2e6d7;
+  font-size: 12px;
+  color: #61764f;
+}
+.neighbour-distances summary {
+  cursor: pointer;
+}
+.neighbour-distances ul {
+  list-style: none;
+  padding: 0;
+  max-height: 180px;
+  overflow: auto;
+}
+.neighbour-distances li {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  font-variant-numeric: tabular-nums;
+}

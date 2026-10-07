@@ -84,7 +84,7 @@ export async function rateLimit(env: Env, req: Request) {
       429,
     );
 }
-export async function gemini(
+export async function gemini<T = unknown>(
   env: Env,
   model: string,
   method: string,
@@ -124,7 +124,7 @@ export async function gemini(
       response.status === 429 ? 429 : 502,
     );
   }
-  return response.json();
+  return response.json() as Promise<T>;
 }
 export async function generate<T>(
   env: Env,
@@ -132,7 +132,12 @@ export async function generate<T>(
   schema: z.ZodType<T>,
   temperature = 0.5,
 ): Promise<T> {
-  const data = await gemini(env, env.GENERATION_MODEL, "generateContent", {
+  const data = await gemini<{
+    candidates?: {
+      finishReason?: string;
+      content: { parts: { text?: string }[] };
+    }[];
+  }>(env, env.GENERATION_MODEL, "generateContent", {
     systemInstruction: {
       parts: [
         {

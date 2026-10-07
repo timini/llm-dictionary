@@ -1,3 +1,4 @@
 import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
 initOpenNextCloudflareForDev();
-export default { poweredByHeader: false };
+const config = { poweredByHeader: false };
+export default config;

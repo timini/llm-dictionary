@@ -17,14 +17,18 @@ import {
 import type { WordGraph } from "../../../lib/types";
 export const dynamic = "force-dynamic";
 const input = z
-  .object({ from: wordSchema, to: wordSchema })
+  .object({
+    from: wordSchema,
+    to: wordSchema,
+    cachedOnly: z.boolean().optional(),
+  })
   .refine((v) => v.from !== v.to, "Choose two different words.");
 const pathSchema = z.object({
   paths: z.array(z.array(wordSchema).min(3).max(8)).length(10),
 });
 export async function POST(req: Request) {
   try {
-    const { from, to } = input.parse(await jsonBody(req));
+    const { from, to, cachedOnly } = input.parse(await jsonBody(req));
     const env = await environment();
     const models = {
       generation: env.GENERATION_MODEL,
@@ -34,6 +38,8 @@ export async function POST(req: Request) {
     const cached = await read<WordGraph>(env, key);
     if (cached)
       return Response.json({ status: "complete", data: cached, cached: true });
+    if (cachedOnly)
+      throw new ApiError("No saved graph exists for this pair.", 404);
     await rateLimit(env, req);
     const owner = await acquire(env, key);
     if (!owner)
@@ -84,7 +90,7 @@ export async function POST(req: Request) {
       const vectors = new Map<string, number[]>();
       const embeddingKey = (word: string) =>
         `embedding:v1:${models.embedding}:768:${word}`;
-      // Read cached vectors in parallel; persist each completed embedding batch before continuing.
+      // Read cached vectors in chunks; persist each completed embedding batch before continuing.
       const saved: (readonly [string, number[] | null])[] = [];
       for (let offset = 0; offset < words.length; offset += 80) {
         const chunk = words.slice(offset, offset + 80);
@@ -112,7 +118,7 @@ export async function POST(req: Request) {
       }
       if (missing.length) {
         const batch = missing.slice(0, 40);
-        const output = await gemini(
+        const output = await gemini<{ embeddings: unknown }>(
           env,
           models.embedding,
           "batchEmbedContents",
@@ -127,7 +133,12 @@ export async function POST(req: Request) {
         const embeddings = z
           .array(z.object({ values: z.array(z.number().finite()).length(768) }))
           .length(batch.length)
-          .parse(output.embeddings);
+          .safeParse(output.embeddings);
+        if (!embeddings.success)
+          throw new ApiError(
+            "The model returned invalid embeddings. Please retry.",
+            502,
+          );
         await env.DB.batch(
           batch.map((word, index) =>
             env.DB.prepare(
@@ -135,7 +146,7 @@ export async function POST(req: Request) {
             ).bind(
               embeddingKey(word),
               "embedding",
-              JSON.stringify(embeddings[index].values),
+              JSON.stringify(embeddings.data[index].values),
             ),
           ),
         );

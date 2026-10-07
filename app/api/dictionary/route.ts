@@ -32,11 +32,15 @@ const schema = z.object({
 });
 export async function POST(req: Request) {
   try {
-    const { word } = z.object({ word: wordSchema }).parse(await jsonBody(req));
+    const { word, cachedOnly } = z
+      .object({ word: wordSchema, cachedOnly: z.boolean().optional() })
+      .parse(await jsonBody(req));
     const env = await environment(),
       key = `definition:v1:${env.GENERATION_MODEL}:${word}`;
     const cached = await read<Definition>(env, key);
     if (cached) return Response.json({ data: cached, cached: true });
+    if (cachedOnly)
+      throw new ApiError("No saved definition exists for this word.", 404);
     await rateLimit(env, req);
     const owner = await acquire(env, key);
     if (!owner)

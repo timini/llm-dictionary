@@ -10,7 +10,9 @@ import {
   forceY,
   type SimulationNodeDatum,
 } from "d3-force";
-import type { WordGraph } from "../lib/types";
+import { edgeLength, semanticDistance } from "../../lib/distance";
+import NeighbourDistances from "./neighbour-distances";
+import type { WordGraph } from "../../lib/types";
 type Node = SimulationNodeDatum & WordGraph["nodes"][number];
 type Link = {
   source: Node | string;
@@ -43,9 +45,9 @@ export default function WordGraphView({
     const nodes: Node[] = graph.nodes.map((n) => ({
       ...n,
       ...(n.id === graph.from
-        ? { fx: 160, fy: 270 }
+        ? { x: 160, y: 270 }
         : n.id === graph.to
-          ? { fx: 840, fy: 270 }
+          ? { x: 840, y: 270 }
           : {}),
     }));
     const links: Link[] = graph.links.map((l) => ({ ...l }));
@@ -54,8 +56,8 @@ export default function WordGraphView({
         "link",
         forceLink<Node, Link>(links)
           .id((d) => d.id)
-          .distance((l) => (l.kind === "neighbour" ? 90 : 115))
-          .strength((l) => (l.kind === "neighbour" ? 0.025 : 0.07)),
+          .distance((l) => edgeLength(l.similarity))
+          .strength(0.3),
       )
       .force("charge", forceManyBody().strength(-100))
       .force("center", forceCenter(500, 270))
@@ -125,13 +127,17 @@ export default function WordGraphView({
         aria-label={`Semantic graph connecting ${graph.from} and ${graph.to}. Select a word to inspect its neighbours.`}
         onPointerMove={move}
         onPointerUp={() => {
-          if (dragRef.current && !dragRef.current.endpoint) {
+          if (dragRef.current) {
             dragRef.current.fx = null;
             dragRef.current.fy = null;
           }
           dragRef.current = null;
         }}
         onPointerCancel={() => {
+          if (dragRef.current) {
+            dragRef.current.fx = null;
+            dragRef.current.fy = null;
+          }
           dragRef.current = null;
         }}
       >
@@ -155,7 +161,9 @@ export default function WordGraphView({
                 opacity={active ? (l.kind === "neighbour" ? 0.35 : 0.6) : 0.06}
               >
                 <title>
-                  {a.id} ↔ {b.id}: cosine similarity {l.similarity.toFixed(3)}
+                  {a.id} ↔ {b.id}: distance{" "}
+                  {semanticDistance(l.similarity).toFixed(3)} · cosine
+                  similarity {l.similarity.toFixed(3)}
                   {l.kind === "association"
                     ? ` · ${l.count} paths`
                     : " · embedding neighbour"}
@@ -239,6 +247,9 @@ export default function WordGraphView({
           </span>
         )}
       </div>
+      {selectedNode && (
+        <NeighbourDistances selected={selectedNode.id} links={graph.links} />
+      )}
     </div>
   );
 }

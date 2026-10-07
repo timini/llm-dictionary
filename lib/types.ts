@@ -26,3 +26,5 @@ export type WordGraph = {
 export type JobResponse =
   | { status: "processing"; completed: number; total: number; stage: string }
   | { status: "complete"; data: WordGraph; cached: boolean };
+
+export type Mode = "dictionary" | "connections";
