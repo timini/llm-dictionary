@@ -58,7 +58,7 @@ The supplied key must be configured with Wrangler as a Worker secret, never comm
 
 `POST /api/dictionary` accepts `{ "word": "serendipity" }` and returns `{ data, cached }`.
 
-`POST /api/connections` accepts `{ "from": "ocean", "to": "music" }`. Each request completes one uncached path batch or embedding batch and persists it before returning `{ status: "processing", completed, total, stage }`. The browser polls every 6.5 seconds until `{ status: "complete", data, cached }`. A repeat finished search returns immediately without Gemini calls. Requests for the same graph use an expiring D1 lock to prevent duplicate concurrent work. Different word order has a separate graph cache key; capitalization and spacing normalize to the same key.
+`POST /api/connections` accepts `{ "from": "ocean", "to": "music" }`. Each request completes one uncached path batch or embedding batch and persists it before returning `{ status: "processing", completed, total, stage }`. The browser polls every 6.5 seconds and retries transient model failures up to twice per step, until `{ status: "complete", data, cached }`. A repeat finished search returns immediately without Gemini calls. Requests for the same graph use an expiring D1 lock to prevent duplicate concurrent work. Different word order has a separate graph cache key; capitalization and spacing normalize to the same key.
 
 The cache stores generation model versions and algorithm version (`v1`) in keys. Changing prompts or algorithms should bump the version. Failed or invalid model responses are not saved. A completed step is preserved even if a later step fails. There is a small unavoidable duplicate-call window if the Worker stops after the provider responds but before the result is persisted.
 
