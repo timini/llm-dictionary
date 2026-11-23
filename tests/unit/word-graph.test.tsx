@@ -195,7 +195,8 @@ it("lets endpoint positions follow semantic forces and releases drag state on ca
   fireEvent.pointerCancel(svg);
 });
 it("stops simulations on replacement and unmount, and resets selection", () => {
-  const { rerender, unmount } = setup();
+  const { rerender, unmount, group } = setup();
+  fireEvent.click(screen.getByRole("button", { name: "Zoom in" }));
   fireEvent.click(screen.getByRole("button", { name: "Inspect wave" }));
   const replacement: WordGraph = { ...graph, from: "music", to: "ocean" };
   act(() => rerender(<WordGraphView graph={replacement} onWord={vi.fn()} />));
@@ -203,6 +204,10 @@ it("stops simulations on replacement and unmount, and resets selection", () => {
   expect(
     screen.queryByRole("button", { name: "Look up definition ↗" }),
   ).toBeNull();
+  expect(group).toHaveAttribute(
+    "transform",
+    "translate(500 270) scale(1) translate(-500 -270)",
+  );
   unmount();
   expect(layout.stop).toHaveBeenCalledTimes(2);
 });

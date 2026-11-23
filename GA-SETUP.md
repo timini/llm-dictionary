@@ -21,7 +21,7 @@ send cookieless measurement pings. Any future consent grant requires a separate
 approved consent implementation. Do not add session replay or user IDs.
 
 Verify in the deployed bundle and GA Realtime after rollout. A configured ID
-alone is not evidence of received events. No deployment has been performed.
+alone is not evidence of received events. Deployment verification is recorded separately after rollout.
 
 Configured property 565332588, stream `G-KYD611CMTW`; Enhanced Measurement disabled.
-Deployment requires a separately validated upgrade to a supported Next.js major; current Next 15 is rejected by the adapter support-policy guard. The unsupported-version override was not used.
+The app uses Next.js 16 with its matching ESLint configuration, supported by the installed OpenNext Cloudflare adapter. No unsupported-version override is used. GitHub Actions validates the build and current live site; production releases use `npm run deploy` from merged main.
