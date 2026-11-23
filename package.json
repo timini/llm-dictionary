@@ -7,7 +7,7 @@
     "build": "next build",
     "build:worker": "opennextjs-cloudflare build",
     "preview": "opennextjs-cloudflare preview",
-    "deploy": "npm run check && npm run build:worker && opennextjs-cloudflare deploy && npm run test:smoke",
+    "deploy": "npm run check && npm run build:worker && npm run test:worker && opennextjs-cloudflare deploy && npm run test:smoke",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --coverage",
     "db:local": "wrangler d1 migrations apply DB --local",
@@ -17,13 +17,14 @@
     "format:check": "prettier --check .",
     "format": "prettier --write .",
     "test:smoke": "tsx scripts/smoke.ts",
-    "check": "npm run lint && npm run format:check && npm run typecheck && npm test"
+    "check": "npm run lint && npm run format:check && npm run typecheck && npm test",
+    "test:worker": "tsx scripts/worker-smoke.ts"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@opennextjs/cloudflare": "^1.20.9",
+    "@opennextjs/cloudflare": "^1.20.18",
     "d3-force": "^3.0.0",
     "next": "^16.4.6",
     "react": "^19.3.0",
