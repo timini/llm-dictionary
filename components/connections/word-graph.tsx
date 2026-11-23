@@ -39,9 +39,13 @@ export default function WordGraphView({
   );
   const dragRef = useRef<Node | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
-  useEffect(() => {
+  const [previousGraph, setPreviousGraph] = useState(graph);
+  if (graph !== previousGraph) {
+    setPreviousGraph(graph);
     setSelected(null);
     setZoom(1);
+  }
+  useEffect(() => {
     const nodes: Node[] = graph.nodes.map((n) => ({
       ...n,
       ...(n.id === graph.from
